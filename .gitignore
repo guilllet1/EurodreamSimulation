@@ -1,0 +1,14 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+
+# IDE (IntelliJ / Eclipse / VS Code)
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+*.log
