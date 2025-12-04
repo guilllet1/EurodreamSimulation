@@ -1,5 +1,6 @@
 package com.eurodreamsimulation.strategy;
 import com.eurodreamsimulation.model.Grille;
+import com.eurodreamsimulation.model.Tirage;
 import java.util.List;
 
 public class StrategieFixe implements IStrategie {
@@ -10,7 +11,7 @@ public class StrategieFixe implements IStrategie {
     }
 
     @Override
-    public Grille genererGrille() {
+    public Grille genererGrille(Tirage t) {
         return grilleFixe; // Joue toujours la même
     }
 

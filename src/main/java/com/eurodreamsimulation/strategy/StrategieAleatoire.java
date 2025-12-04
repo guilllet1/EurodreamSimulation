@@ -1,12 +1,13 @@
 package com.eurodreamsimulation.strategy;
 import com.eurodreamsimulation.model.Grille;
+import com.eurodreamsimulation.model.Tirage;
 import java.util.*;
 
 public class StrategieAleatoire implements IStrategie {
     private final Random random = new Random();
 
     @Override
-    public Grille genererGrille() {
+    public Grille genererGrille(Tirage t) {
         Set<Integer> boules = new HashSet<>();
         while (boules.size() < 6) {
             boules.add(random.nextInt(40) + 1); // 1 à 40

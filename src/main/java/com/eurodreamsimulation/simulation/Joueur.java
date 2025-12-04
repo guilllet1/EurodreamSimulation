@@ -19,7 +19,7 @@ public class Joueur {
         totalDepenses += 2.50;
 
         // 2. Générer la grille via la stratégie
-        var grille = strategie.genererGrille();
+        var grille = strategie.genererGrille(tirage);
 
         // 3. Récupérer le gain exact du fichier CSV
         double gain = tirage.calculerGain(grille);
