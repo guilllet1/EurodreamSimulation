@@ -10,7 +10,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.5.0:exec</goal>
             </goals>
             <properties>
-                <exec.args>-classpath %classpath com.eurodreamsimulation.simulation.App</exec.args>
+                <exec.args>-Dfile.encoding=UTF-8 -classpath %classpath com.eurodreamsimulation.simulation.App</exec.args>
                 <exec.executable>java</exec.executable>
             </properties>
         </action>

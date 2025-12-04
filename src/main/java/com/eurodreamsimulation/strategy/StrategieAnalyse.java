@@ -43,7 +43,8 @@ public class StrategieAnalyse implements IStrategie {
 
         // Complétion si nécessaire
         compléterSiNecessaire(numerosChoisis);
-
+        
+        System.out.println("Date:"+tirageActuel.dateTirage + " // Grille : "+numerosChoisis.stream().sorted().distinct().limit(6).collect(Collectors.toList())+"-"+ numeroDreamChoisi);
         return new Grille(numerosChoisis.stream().sorted().distinct().limit(6).collect(Collectors.toList()), numeroDreamChoisi);
     }
 

@@ -4,6 +4,8 @@ import com.eurodreamsimulation.data.CsvLoader;
 import com.eurodreamsimulation.model.Grille;
 import com.eurodreamsimulation.model.Tirage;
 import com.eurodreamsimulation.strategy.StrategieAnalyse;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -15,6 +17,15 @@ import java.util.List;
 public class NextDrawPredictor {
 
     public static void main(String[] args) {
+        
+         // --- CORRECTIF ENCODAGE (Affichage des € et accents) ---
+        try {
+            System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
         CsvLoader loader = new CsvLoader();
         List<Tirage> historique = loader.chargerDepuisRessources("eurodreams_202311.csv");
         

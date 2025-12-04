@@ -6,21 +6,32 @@ import com.eurodreamsimulation.strategy.IStrategie;
 import com.eurodreamsimulation.strategy.StrategieAleatoire;
 import com.eurodreamsimulation.strategy.StrategieAnalyse; // NOUVEAU
 import com.eurodreamsimulation.strategy.StrategieFixe;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class App {
     
-    private static final int NOMBRE_JOUEURS_ALEATOIRES = 1000;
-    private static final int NOMBRE_JOUEURS_ANALYSE = 10; // Tester la nouvelle stratégie avec 10 joueurs
+    private static final int NOMBRE_JOUEURS_ALEATOIRES = 100000;
+    private static final int NOMBRE_JOUEURS_ANALYSE = 1; // Tester la nouvelle stratégie avec 10 joueurs
     
     public static void main(String[] args) {
+        
+        // --- CORRECTIF ENCODAGE (Affichage des € et accents) ---
+        try {
+            System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         
         // 1. Charger le CSV en mémoire
         CsvLoader loader = new CsvLoader();
         List<Tirage> data = loader.chargerDepuisRessources("eurodreams_202311.csv");
-
+        Collections.reverse(data);
         if (data.isEmpty()) {
             System.err.println("La simulation est annulée.");
             return;
