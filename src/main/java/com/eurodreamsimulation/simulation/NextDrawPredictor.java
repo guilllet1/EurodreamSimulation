@@ -6,6 +6,8 @@ import com.eurodreamsimulation.model.Tirage;
 import com.eurodreamsimulation.strategy.StrategieAleatoire;
 import com.eurodreamsimulation.strategy.StrategieAnalyse;
 import com.eurodreamsimulation.strategy.StrategieFixe;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -17,6 +19,13 @@ import java.util.Locale;
 public class NextDrawPredictor {
 
     public static void main(String[] args) {
+        
+        // 1. Configuration de l'affichage (Accents et Euro €)
+        try {
+            System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+        } catch (Exception e) { e.printStackTrace(); }
+        
         // 1. Chargement
         CsvLoader loader = new CsvLoader();
         List<Tirage> historique = loader.chargerDepuisRessources("eurodreams_202311.csv");
