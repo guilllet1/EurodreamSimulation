@@ -12,3 +12,5 @@ target/
 .project
 .settings/
 *.log
+
+src/main/resources/config.properties

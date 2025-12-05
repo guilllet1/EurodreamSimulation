@@ -15,7 +15,12 @@
     </properties>
 
     <dependencies>
-        </dependencies>
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
@@ -30,7 +35,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.eurodreams.simulation.App</mainClass>
+                    <mainClass>com.eurodreamsimulation.simulation.App</mainClass>
                 </configuration>
             </plugin>
         </plugins>

@@ -3,62 +3,90 @@ package com.eurodreamsimulation.simulation;
 import com.eurodreamsimulation.data.CsvLoader;
 import com.eurodreamsimulation.model.Grille;
 import com.eurodreamsimulation.model.Tirage;
+import com.eurodreamsimulation.strategy.StrategieAleatoire;
 import com.eurodreamsimulation.strategy.StrategieAnalyse;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import com.eurodreamsimulation.strategy.StrategieFixe;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.Collections;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * Classe exécutable pour charger l'historique et prédire le prochain tirage.
- */
 public class NextDrawPredictor {
 
     public static void main(String[] args) {
-        
-         // --- CORRECTIF ENCODAGE (Affichage des € et accents) ---
-        try {
-            System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
-            System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
+        // 1. Chargement
         CsvLoader loader = new CsvLoader();
         List<Tirage> historique = loader.chargerDepuisRessources("eurodreams_202311.csv");
         
-        // Si la liste est vide, on arrête
         if (historique.isEmpty()) {
-            System.err.println("Aucun tirage chargé. Vérifiez le fichier CSV.");
+            System.err.println("Simulation annulée : CSV vide.");
             return;
         }
 
-        // Pour être sûr d'avoir l'ordre ou les données souhaitées
-        // (L'utilisateur inversait la liste dans le code original)
-        Collections.reverse(historique);
-
-        // 1. Déterminer une date future pour la prédiction
-        // On cherche la date la plus récente de l'historique et on ajoute 1 jour
+        // 2. Calcul de la date cible
         LocalDate derniereDateConnue = historique.stream()
                 .map(t -> t.dateTirage)
                 .max(LocalDate::compareTo)
                 .orElse(LocalDate.now());
-        
+
+        LocalDate dateProchainTirage = derniereDateConnue.plusDays(1);
+        while (dateProchainTirage.getDayOfWeek() != DayOfWeek.MONDAY && 
+               dateProchainTirage.getDayOfWeek() != DayOfWeek.THURSDAY) {
+            dateProchainTirage = dateProchainTirage.plusDays(1);
+        }
+
+        // 3. Préparation des stratégies
         Tirage tirageFutur = new Tirage();
-        tirageFutur.dateTirage = derniereDateConnue.plusDays(1); // Date "demain" par rapport aux données
+        tirageFutur.dateTirage = dateProchainTirage; 
 
-        // 2. Initialiser la stratégie
-        StrategieAnalyse strategie = new StrategieAnalyse(historique);
+        StrategieFixe stratFixe = new StrategieFixe(Arrays.asList(2, 4, 8, 9, 12, 26), 1);
+        StrategieAnalyse stratAnalyse = new StrategieAnalyse(historique);
+        StrategieAleatoire stratAleatoire = new StrategieAleatoire();
 
-        // 3. Générer la grille en passant le tirage futur
-        // La stratégie va utiliser tout l'historique car date < tirageFutur.date
-        Grille grille = strategie.genererGrille(tirageFutur);
+        // 4. Génération des grilles
+        Grille gFixe = stratFixe.genererGrille(tirageFutur);
+        Grille gAnalyse = stratAnalyse.genererGrille(tirageFutur);
+        Grille gAleatoire = stratAleatoire.genererGrille(tirageFutur);
 
-        System.out.println("=== Grille recommandée pour le prochain tirage ===");
-        System.out.printf("Numéros : %s\n", grille.getNumeros());
-        System.out.printf("Dream : %d\n", grille.getNumeroDream());
-        System.out.println("(Stratégie utilisée : " + strategie.getNom() + ")");
+        // 5. Construction du rapport (Pour Console + Email)
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH);
+        String dateStr = dateProchainTirage.format(dtf);
+        dateStr = dateStr.substring(0, 1).toUpperCase() + dateStr.substring(1);
+
+        StringBuilder rapport = new StringBuilder();
+        rapport.append("==========================================================\n");
+        rapport.append("   PRÉDICTIONS EURODREAMS : ").append(dateStr.toUpperCase()).append("\n");
+        rapport.append("==========================================================\n\n");
+        
+        ajouterAuRapport(rapport, "1. OPTION FIXE (Vos numéros)", gFixe, "Toujours la même combinaison");
+        ajouterAuRapport(rapport, "2. OPTION ANALYSE", gAnalyse, "Basé sur les paires fréquentes");
+        ajouterAuRapport(rapport, "3. OPTION ALÉATOIRE", gAleatoire, "Hasard total");
+        
+        rapport.append("==========================================================\n");
+
+        // 6. Affichage Console
+        System.out.println(rapport.toString());
+
+        // 7. Envoi par Email
+        // Remplacez par l'email qui doit RECEVOIR le pronostic
+        String emailDestinataire = "g.berthier@gmail.com"; 
+        
+        System.out.println("Tentative d'envoi de l'email...");
+        EmailSender.envoyer(
+            emailDestinataire, 
+            "Pronostics EuroDreams - " + dateStr, 
+            rapport.toString()
+        );
+    }
+
+    private static void ajouterAuRapport(StringBuilder sb, String titre, Grille grille, String desc) {
+        sb.append(titre).append("\n");
+        sb.append("   Numéros : ").append(grille.getNumeros()).append("\n");
+        sb.append("   Dream   : ").append(grille.getNumeroDream()).append("\n");
+        sb.append("   (").append(desc).append(")\n");
+        sb.append("----------------------------------------------------------\n");
     }
 }

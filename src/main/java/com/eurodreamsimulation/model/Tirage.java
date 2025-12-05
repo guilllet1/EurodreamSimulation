@@ -10,7 +10,8 @@ public class Tirage {
     public List<Integer> boules;
     public int numeroDream;
     
-    // Map pour un accès rapide : Rang -> Info
+    // On conserve la map pour ne pas casser le CsvLoader, 
+    // mais elle ne sera plus utilisée pour le calcul des gains.
     public Map<Integer, ResultatRang> mapRangs; 
 
     // Méthode clé : Calcule le gain pour une grille donnée sur CE tirage
@@ -23,10 +24,16 @@ public class Tirage {
 
         int rangAtteint = determinerRang(bonsNumeros, bonDream);
 
-        if (rangAtteint > 0 && mapRangs.containsKey(rangAtteint)) {
-            return mapRangs.get(rangAtteint).rapport;
+        // --- MODIFICATION : Application du barème fixe ---
+        switch (rangAtteint) {
+            case 1: return 20000.0; // 6 numéros + Dream
+            case 2: return 2000.0;  // 6 numéros
+            case 3: return 100.0;   // 5 numéros
+            case 4: return 40.0;    // 4 numéros
+            case 5: return 5.0;     // 3 numéros
+            case 6: return 2.5;     // 2 numéros
+            default: return 0.0;    // Perdu
         }
-        return 0.0;
     }
 
     private int determinerRang(int nbBoules, boolean bonDream) {

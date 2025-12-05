@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections; // Import nécessaire pour le tri
+import java.util.Comparator;  // Import nécessaire pour le comparateur
 
 public class Simulateur {
     private final List<Tirage> historiqueTirages;
@@ -34,7 +36,7 @@ public class Simulateur {
     private void afficherResultatsParStrategie() {
         Map<String, StrategieStats> statsParStrategie = new HashMap<>();
 
-        // 1. Collecte des statistiques de tous les joueurs
+        // 1. Collecte des statistiques
         for (Joueur j : joueurs) {
             String nomStrategie = j.getStrategie().getNom();
             
@@ -46,35 +48,39 @@ public class Simulateur {
             stats.totalGainsCumules += j.getTotalGains();
             stats.totalDepensesCumulees += j.getTotalDepenses();
             
-            // Suivi du gain maximal obtenu sur une seule grille
             if (j.getMaxSingleDrawGain() > stats.maxSingleGridGain) {
                 stats.maxSingleGridGain = j.getMaxSingleDrawGain();
             }
 
-            // Suivi du gain maximal cumulé obtenu par un joueur
             if (j.getTotalGains() > stats.maxCumulativeGain) {
                 stats.maxCumulativeGain = j.getTotalGains();
             }
         }
 
-        // 2. Affichage du résumé par stratégie
+        // --- 2. TRI DES RÉSULTATS (NOUVEAU) ---
+        // On transforme la Map en Liste pour pouvoir la trier
+        List<StrategieStats> listeTriee = new ArrayList<>(statsParStrategie.values());
+        
+        // Tri décroissant par Gain Moyen Brut (du plus rentable au moins rentable)
+        listeTriee.sort(Comparator.comparingDouble(StrategieStats::getGainMoyenBrut).reversed());
+
+        // 3. Affichage du résumé
         System.out.println("\n============================================================================================================================================================================");
         System.out.println("                                                                    RÉSUMÉ DE LA SIMULATION PAR STRATÉGIE (Total: " + joueurs.size() + " joueurs)");
+        System.out.println("                                                                    (Classé par Gain Moyen Brut décroissant)");
         System.out.println("============================================================================================================================================================================");
         
-        // CORRECTION D'ALIGNEMENT : Retrait du symbole Euro (€) des en-têtes de colonne
         System.out.printf("| %-60s | %10s | %15s | %15s | %15s | %15s | %15s |%n", 
             "STRATÉGIE", "Nbre Joueurs", "Gain Max (Joueur)", "Gain Max (Grille)", "Gain Moyen Brut", "Gain Moyen Net", "Remboursement (%)");
         System.out.println("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
-        for (StrategieStats stats : statsParStrategie.values()) {
-            double gainMoyenBrut = stats.totalGainsCumules / stats.nombreJoueurs; 
+        for (StrategieStats stats : listeTriee) {
+            double gainMoyenBrut = stats.getGainMoyenBrut();
             double depenseMoyenne = stats.totalDepensesCumulees / stats.nombreJoueurs;
             double gainMoyenNet = gainMoyenBrut - depenseMoyenne;
             
             double tauxRemboursement = (depenseMoyenne != 0) ? (gainMoyenBrut / depenseMoyenne) * 100 : 0.0;
 
-            // La ligne de contenu reste alignée à droite
             System.out.printf("| %-60s | %10d | %15.2f € | %15.2f € | %15.2f € | %15.2f € | %15.2f |%n", 
                 stats.nom, 
                 stats.nombreJoueurs, 
@@ -97,6 +103,12 @@ public class Simulateur {
 
         public StrategieStats(String nom) {
             this.nom = nom;
+        }
+        
+        // Méthode helper pour le tri
+        public double getGainMoyenBrut() {
+            if (nombreJoueurs == 0) return 0.0;
+            return totalGainsCumules / nombreJoueurs;
         }
     }
 }
