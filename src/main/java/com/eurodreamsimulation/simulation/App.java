@@ -22,11 +22,16 @@ public class App {
         try {
             System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
             System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // 2. Chargement des données
         CsvLoader loader = new CsvLoader();
-        List<Tirage> data = loader.chargerDepuisRessources("eurodreams_202311.csv");
+        // Par :
+        List<Tirage> data = loader.chargerDepuisURL(
+                "https://www.sto.api.fdj.fr/anonymous/service-draw-info/v3/documentations/1a2b3c4d-9876-4562-b3fc-2c963f66afa5"
+        );
 
         if (data.isEmpty()) {
             System.err.println("La simulation est annulée : fichier CSV introuvable ou vide.");
