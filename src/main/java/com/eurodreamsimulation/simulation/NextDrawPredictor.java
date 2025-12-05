@@ -27,45 +27,52 @@ public class NextDrawPredictor {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        // 1. Chargement
+        
+        // 1. Chargement (URL FDJ ou Fichier local)
         CsvLoader loader = new CsvLoader();
-        // Par :
+        // Utilisation de l'URL FDJ recommandée pour avoir les dernières données
         List<Tirage> historique = loader.chargerDepuisURL(
-                "https://www.sto.api.fdj.fr/anonymous/service-draw-info/v3/documentations/1a2b3c4d-9876-4562-b3fc-2c963f66afa5"
+            "https://www.sto.api.fdj.fr/anonymous/service-draw-info/v3/documentations/1a2b3c4d-9876-4562-b3fc-2c963f66afa5"
         );
-
+        
         if (historique.isEmpty()) {
-            System.err.println("Simulation annulée : CSV vide.");
-            return;
+            // Fallback sur le fichier local si l'URL échoue
+            System.out.println("Téléchargement échoué, tentative locale...");
+            historique = loader.chargerDepuisRessources("eurodreams_202311.csv");
         }
 
-        // 2. Calcul de la date cible
-        LocalDate derniereDateConnue = historique.stream()
-                .map(t -> t.dateTirage)
-                .max(LocalDate::compareTo)
-                .orElse(LocalDate.now());
+        if (historique.isEmpty()) return;
 
+        // 2. Récupération du DERNIER tirage réel connu (le plus récent est en position 0)
+        Tirage dernierTirageReel = historique.get(0);
+        
+        // 3. Calcul de la date future
+        LocalDate derniereDateConnue = dernierTirageReel.dateTirage;
         LocalDate dateProchainTirage = derniereDateConnue.plusDays(1);
         while (dateProchainTirage.getDayOfWeek() != DayOfWeek.MONDAY && 
                dateProchainTirage.getDayOfWeek() != DayOfWeek.THURSDAY) {
             dateProchainTirage = dateProchainTirage.plusDays(1);
         }
 
-        // 3. Préparation des stratégies
+        // 4. Stratégies
         Tirage tirageFutur = new Tirage();
         tirageFutur.dateTirage = dateProchainTirage; 
 
-        StrategieFixe stratFixe = new StrategieFixe(Arrays.asList(2, 4, 8, 9, 12, 26), 1);
-        StrategieAnalyse stratAnalyse = new StrategieAnalyse(historique);
-        StrategieAleatoire stratAleatoire = new StrategieAleatoire();
+        Grille gFixe = new StrategieFixe(Arrays.asList(2, 4, 8, 9, 12, 26), 1).genererGrille(tirageFutur);
+        Grille gAnalyse = new StrategieAnalyse(historique).genererGrille(tirageFutur);
+        Grille gAleatoire = new StrategieAleatoire().genererGrille(tirageFutur);
 
-        // 4. Génération des grilles
-        Grille gFixe = stratFixe.genererGrille(tirageFutur);
-        Grille gAnalyse = stratAnalyse.genererGrille(tirageFutur);
-        Grille gAleatoire = stratAleatoire.genererGrille(tirageFutur);
+        // 5. --- APPEL GEMINI (NOUVEAU) ---
+        System.out.println("Demande d'analyse à Gemini...");
+        String descriptionDernierTirage = String.format("Tirage du %s : %s - Dream %d", 
+                dernierTirageReel.dateTirage, 
+                dernierTirageReel.boules, 
+                dernierTirageReel.numeroDream);
+        
+        String analyseIA = GeminiClient.analyserTirage(descriptionDernierTirage);
+        // ---------------------------------
 
-        // 5. Construction du rapport (Pour Console + Email)
+        // 6. Construction du rapport
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH);
         String dateStr = dateProchainTirage.format(dtf);
         dateStr = dateStr.substring(0, 1).toUpperCase() + dateStr.substring(1);
@@ -75,25 +82,21 @@ public class NextDrawPredictor {
         rapport.append("   PRÉDICTIONS EURODREAMS : ").append(dateStr.toUpperCase()).append("\n");
         rapport.append("==========================================================\n\n");
         
-        ajouterAuRapport(rapport, "1. OPTION FIXE (Vos numéros)", gFixe, "Toujours la même combinaison");
-        ajouterAuRapport(rapport, "2. OPTION ANALYSE", gAnalyse, "Basé sur les paires fréquentes");
+        // Ajout de l'analyse IA en premier
+        rapport.append("🧠 ANALYSE IA DU PRÉCÉDENT TIRAGE (").append(dernierTirageReel.dateTirage).append(")\n");
+        rapport.append("   ").append(descriptionDernierTirage).append("\n");
+        rapport.append("   >> ").append(analyseIA).append("\n");
+        rapport.append("----------------------------------------------------------\n\n");
+
+        ajouterAuRapport(rapport, "1. OPTION FIXE", gFixe, "Toujours la même");
+        ajouterAuRapport(rapport, "2. OPTION ANALYSE", gAnalyse, "Paires fréquentes");
         ajouterAuRapport(rapport, "3. OPTION ALÉATOIRE", gAleatoire, "Hasard total");
         
         rapport.append("==========================================================\n");
 
-        // 6. Affichage Console
+        // 7. Envoi
         System.out.println(rapport.toString());
-
-        // 7. Envoi par Email
-        // Remplacez par l'email qui doit RECEVOIR le pronostic
-        String emailDestinataire = "g.berthier@gmail.com"; 
-        
-        System.out.println("Tentative d'envoi de l'email...");
-        EmailSender.envoyer(
-            emailDestinataire, 
-            "Pronostics EuroDreams - " + dateStr, 
-            rapport.toString()
-        );
+        EmailSender.envoyer("g.berthier@gmail.com", "Pronostics EuroDreams + IA - " + dateStr, rapport.toString());
     }
 
     private static void ajouterAuRapport(StringBuilder sb, String titre, Grille grille, String desc) {
