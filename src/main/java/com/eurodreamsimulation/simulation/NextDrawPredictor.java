@@ -8,6 +8,8 @@ import com.eurodreamsimulation.strategy.StrategieAnalyse;
 import com.eurodreamsimulation.strategy.StrategieFixe;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -17,6 +19,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class NextDrawPredictor {
+    
+    private static final Logger logger = LogManager.getLogger(NextDrawPredictor.class);
 
     public static void main(String[] args) {
         
@@ -37,7 +41,7 @@ public class NextDrawPredictor {
         
         if (historique.isEmpty()) {
             // Fallback sur le fichier local si l'URL échoue
-            System.out.println("Téléchargement échoué, tentative locale...");
+            logger.info("Téléchargement échoué, tentative locale...");
             historique = loader.chargerDepuisRessources("eurodreams_202311.csv");
         }
 
@@ -63,7 +67,7 @@ public class NextDrawPredictor {
         Grille gAleatoire = new StrategieAleatoire().genererGrille(tirageFutur);
 
         // 5. --- APPEL GEMINI (NOUVEAU) ---
-        System.out.println("Demande d'analyse à Gemini...");
+        logger.info("Demande d'analyse à Gemini...");
         String descriptionDernierTirage = String.format("Tirage du %s : %s - Dream %d", 
                 dernierTirageReel.dateTirage, 
                 dernierTirageReel.boules, 
@@ -95,7 +99,7 @@ public class NextDrawPredictor {
         rapport.append("==========================================================\n");
 
         // 7. Envoi
-        System.out.println(rapport.toString());
+        logger.info(rapport.toString());
         EmailSender.envoyer("g.berthier@gmail.com", "Pronostics EuroDreams + IA - " + dateStr, rapport.toString());
     }
 
