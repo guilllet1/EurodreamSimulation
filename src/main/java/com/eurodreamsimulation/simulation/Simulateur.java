@@ -1,14 +1,21 @@
 package com.eurodreamsimulation.simulation;
 
 import com.eurodreamsimulation.model.Tirage;
+// 1. Imports Log4j
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Collections; // Import nécessaire pour le tri
-import java.util.Comparator;  // Import nécessaire pour le comparateur
 
 public class Simulateur {
+    // 2. Définition du logger
+    private static final Logger logger = LogManager.getLogger(Simulateur.class);
+
     private final List<Tirage> historiqueTirages;
     private final List<Joueur> joueurs;
 
@@ -22,7 +29,8 @@ public class Simulateur {
     }
 
     public void demarrer() {
-        System.out.println("--- Début de la Simulation sur " + historiqueTirages.size() + " tirages ---");
+        // Remplacement de System.out par logger.info avec {} pour les variables
+        logger.info("--- Début de la Simulation sur {} tirages ---", historiqueTirages.size());
         
         for (Tirage t : historiqueTirages) {
             for (Joueur j : joueurs) {
@@ -57,22 +65,22 @@ public class Simulateur {
             }
         }
 
-        // --- 2. TRI DES RÉSULTATS (NOUVEAU) ---
-        // On transforme la Map en Liste pour pouvoir la trier
+        // 2. Tri des résultats (Conservé de notre modification précédente)
         List<StrategieStats> listeTriee = new ArrayList<>(statsParStrategie.values());
-        
-        // Tri décroissant par Gain Moyen Brut (du plus rentable au moins rentable)
+        // Tri décroissant par Gain Moyen Brut
         listeTriee.sort(Comparator.comparingDouble(StrategieStats::getGainMoyenBrut).reversed());
 
-        // 3. Affichage du résumé
-        System.out.println("\n============================================================================================================================================================================");
-        System.out.println("                                                                    RÉSUMÉ DE LA SIMULATION PAR STRATÉGIE (Total: " + joueurs.size() + " joueurs)");
-        System.out.println("                                                                    (Classé par Gain Moyen Brut décroissant)");
-        System.out.println("============================================================================================================================================================================");
+        // 3. Affichage du résumé avec Log4j
+        logger.info(""); // Saut de ligne
+        logger.info("============================================================================================================================================================================");
+        logger.info("                                                                    RÉSUMÉ DE LA SIMULATION PAR STRATÉGIE (Total: {} joueurs)", joueurs.size());
+        logger.info("                                                                    (Classé par Gain Moyen Brut décroissant)");
+        logger.info("============================================================================================================================================================================");
         
-        System.out.printf("| %-60s | %10s | %15s | %15s | %15s | %15s | %15s |%n", 
-            "STRATÉGIE", "Nbre Joueurs", "Gain Max (Joueur)", "Gain Max (Grille)", "Gain Moyen Brut", "Gain Moyen Net", "Remboursement (%)");
-        System.out.println("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+        // Utilisation de String.format pour conserver l'alignement des colonnes dans le log
+        logger.info(String.format("| %-60s | %10s | %15s | %15s | %15s | %15s | %15s |", 
+            "STRATÉGIE", "Nbre Joueurs", "Gain Max (Joueur)", "Gain Max (Grille)", "Gain Moyen Brut", "Gain Moyen Net", "Remboursement (%)"));
+        logger.info("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
         for (StrategieStats stats : listeTriee) {
             double gainMoyenBrut = stats.getGainMoyenBrut();
@@ -81,16 +89,16 @@ public class Simulateur {
             
             double tauxRemboursement = (depenseMoyenne != 0) ? (gainMoyenBrut / depenseMoyenne) * 100 : 0.0;
 
-            System.out.printf("| %-60s | %10d | %15.2f € | %15.2f € | %15.2f € | %15.2f € | %15.2f |%n", 
+            logger.info(String.format("| %-60s | %10d | %15.2f € | %15.2f € | %15.2f € | %15.2f € | %15.2f |", 
                 stats.nom, 
                 stats.nombreJoueurs, 
                 stats.maxCumulativeGain,
                 stats.maxSingleGridGain,
                 gainMoyenBrut,
                 gainMoyenNet,
-                tauxRemboursement);
+                tauxRemboursement));
         }
-        System.out.println("============================================================================================================================================================================");
+        logger.info("============================================================================================================================================================================");
     }
     
     private static class StrategieStats {
@@ -104,7 +112,7 @@ public class Simulateur {
         public StrategieStats(String nom) {
             this.nom = nom;
         }
-        
+
         // Méthode helper pour le tri
         public double getGainMoyenBrut() {
             if (nombreJoueurs == 0) return 0.0;

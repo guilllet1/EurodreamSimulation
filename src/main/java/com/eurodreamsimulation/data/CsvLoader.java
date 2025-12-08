@@ -2,6 +2,10 @@ package com.eurodreamsimulation.data;
 
 import com.eurodreamsimulation.model.ResultatRang;
 import com.eurodreamsimulation.model.Tirage;
+// 1. Imports Log4j
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -14,6 +18,9 @@ import java.util.zip.ZipInputStream;
 
 public class CsvLoader {
     
+    // 2. Déclaration du Logger
+    private static final Logger logger = LogManager.getLogger(CsvLoader.class);
+    
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /**
@@ -24,30 +31,31 @@ public class CsvLoader {
         InputStream is = getClass().getClassLoader().getResourceAsStream(nomFichier);
 
         if (is == null) {
-            System.err.println("❌ ERREUR : Fichier '" + nomFichier + "' introuvable dans resources.");
+            // Remplacement de System.err par logger.error
+            logger.error("Fichier '{}' introuvable dans le dossier resources.", nomFichier);
             return tirages;
         }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             chargerDonnees(br, tirages);
         } catch (IOException e) {
-            e.printStackTrace();
+            // On loggue l'exception proprement
+            logger.error("Erreur de lecture du fichier ressource : {}", e.getMessage(), e);
         }
         return tirages;
     }
 
     /**
-     * NOUVEAU : Télécharge et lit le CSV directement depuis l'URL de la FDJ (ZIP)
+     * Télécharge et lit le CSV directement depuis l'URL de la FDJ (ZIP)
      */
     public List<Tirage> chargerDepuisURL(String urlAdresse) {
         List<Tirage> tirages = new ArrayList<>();
-        System.out.println("Téléchargement des données depuis la FDJ...");
+        logger.info("Tentative de téléchargement des données depuis l'URL FDJ...");
 
         try {
             URL url = new URL(urlAdresse);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-            // Important : certains serveurs bloquent les requêtes sans User-Agent (Java par défaut)
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
 
             // On ouvre le flux et on le traite comme un ZIP
@@ -55,32 +63,35 @@ public class CsvLoader {
                  ZipInputStream zis = new ZipInputStream(in)) {
 
                 ZipEntry entry;
-                // On parcourt les fichiers dans le ZIP jusqu'à trouver le CSV
+                // On parcourt les fichiers dans le ZIP
                 while ((entry = zis.getNextEntry()) != null) {
                     if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".csv")) {
-                        System.out.println("✅ Fichier trouvé dans l'archive : " + entry.getName());
+                        logger.info("Fichier CSV trouvé dans l'archive : {}", entry.getName());
                         
-                        // On lit le CSV (UTF-8 est standard pour le web, mais attention si c'est du Windows-1252)
-                        // Pour la FDJ c'est souvent ISO-8859-1 ou UTF-8. Essayons UTF-8 par défaut.
                         BufferedReader br = new BufferedReader(new InputStreamReader(zis, StandardCharsets.UTF_8));
                         chargerDonnees(br, tirages);
                         
-                        // Une fois le CSV lu, on peut arrêter de parcourir le ZIP
-                        break; 
+                        break; // Fichier trouvé et lu, on arrête
                     }
                 }
             }
         } catch (Exception e) {
-            System.err.println("❌ Erreur lors du téléchargement/lecture : " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Échec du téléchargement ou de la lecture URL : {}", e.getMessage());
+            // On ne printStackTrace que si on est en mode debug pour ne pas polluer les logs de prod
+            logger.debug("Stacktrace détaillé : ", e);
         }
         
-        System.out.println("-> " + tirages.size() + " tirages chargés.");
+        if (!tirages.isEmpty()) {
+            logger.info("{} tirages chargés avec succès depuis l'URL.", tirages.size());
+        } else {
+            logger.warn("Aucun tirage n'a pu être extrait de l'URL.");
+        }
+        
         return tirages;
     }
 
     /**
-     * Méthode commune pour lire les lignes, quelle que soit la source (Fichier ou URL)
+     * Méthode commune pour lire les lignes
      */
     private void chargerDonnees(BufferedReader br, List<Tirage> tirages) throws IOException {
         String ligne;
@@ -88,7 +99,6 @@ public class CsvLoader {
         while ((ligne = br.readLine()) != null) {
             if (header) { header = false; continue; }
             
-            // Logique de parsing extraite ici
             Tirage t = parseLigne(ligne);
             if (t != null) {
                 tirages.add(t);
@@ -102,7 +112,6 @@ public class CsvLoader {
 
         try {
             Tirage t = new Tirage();
-            // Nettoyage des guillemets éventuels autour des chiffres
             t.idTirage = Long.parseLong(clean(cols[0]));
             t.dateTirage = LocalDate.parse(clean(cols[2]), dtf);
             
@@ -111,12 +120,11 @@ public class CsvLoader {
             t.numeroDream = safeInt(cols[11]);
 
             t.mapRangs = new HashMap<>();
-            // La mapRangs n'est plus utilisée pour le calcul (car fixée en dur dans Tirage.java)
-            // mais on la garde pour compatibilité si besoin.
             
             return t;
         } catch (Exception e) { 
-            // Ignorer les lignes malformées
+            // On peut logguer en DEBUG les lignes ignorées si besoin
+            // logger.debug("Ligne ignorée (format incorrect) : {}", ligne);
             return null; 
         }
     }
@@ -130,7 +138,6 @@ public class CsvLoader {
         try { return Integer.parseInt(clean(s)); } catch (Exception e) { return 0; }
     }
     
-    // Le safeDouble n'est plus utilisé avec les gains fixes, mais je le laisse au cas où
     private double safeDouble(String s) {
         try { return Double.parseDouble(s.replace(",", ".").replace(" ", "").replace("\u00A0", "").trim()); } 
         catch (Exception e) { return 0.0; }

@@ -10,14 +10,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 public class App {
+    
+    private static final Logger logger = LogManager.getLogger(NextDrawPredictor.class);
     
     // Nombre de joueurs pour avoir des statistiques fiables
     private static final int NB_JOUEURS_ALEATOIRES = 1000;
     private static final int NB_JOUEURS_PAR_STRATEGIE = 1; 
     
     public static void main(String[] args) {
-        
+                
         // 1. Configuration de l'affichage (Accents et Euro €)
         try {
             System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
@@ -34,7 +40,7 @@ public class App {
         );
 
         if (data.isEmpty()) {
-            System.err.println("La simulation est annulée : fichier CSV introuvable ou vide.");
+            logger.error("La simulation est annulée : fichier CSV introuvable ou vide.");
             return;
         }
 
@@ -57,44 +63,44 @@ public class App {
         // --- CONFIGURATION DES ÉQUIPES ---
 
         // Groupe A : Le Hasard (1000 joueurs pour lisser la chance)
-        System.out.printf("Création du groupe Aléatoire (%d joueurs)...%n", NB_JOUEURS_ALEATOIRES);
+        logger.info("Création du groupe Aléatoire (%d joueurs)...%n", NB_JOUEURS_ALEATOIRES);
         for (int i = 0; i < NB_JOUEURS_ALEATOIRES; i++) {
             sim.ajouterJoueur(new Joueur(joueurId++, stratAleatoire));
         }
 
         // Groupe F : Somme Probable (1 écart-type)
-        System.out.printf("Création du groupe Somme Probable (1 sigma) (%d joueurs)...%n", NB_JOUEURS_ALEATOIRES);
+        logger.info("Création du groupe Somme Probable (1 sigma) (%d joueurs)...%n", NB_JOUEURS_ALEATOIRES);
         IStrategie stratSomme = new StrategieSommeProbable(1.5); // 1.0 = 1 écart-type autour de la moyenne
         for (int i = 0; i < NB_JOUEURS_ALEATOIRES; i++) {
             sim.ajouterJoueur(new Joueur(joueurId++, stratSomme));
         }
 
         // Groupe B : Analyse des Paires (StrategieAnalyse)
-        System.out.printf("Création du groupe Paires Fréquentes (%d joueurs)...%n", NB_JOUEURS_PAR_STRATEGIE);
+        logger.info("Création du groupe Paires Fréquentes (%d joueurs)...%n", NB_JOUEURS_PAR_STRATEGIE);
         for (int i = 0; i < NB_JOUEURS_PAR_STRATEGIE; i++) {
             sim.ajouterJoueur(new Joueur(joueurId++, stratPaires));
         }
 
         // Groupe C : Les Plus Fréquents (StrategiePlusFrequents)
-        System.out.printf("Création du groupe Numéros 'Chauds' (%d joueurs)...%n", NB_JOUEURS_PAR_STRATEGIE);
+        logger.info("Création du groupe Numéros 'Chauds' (%d joueurs)...%n", NB_JOUEURS_PAR_STRATEGIE);
         for (int i = 0; i < NB_JOUEURS_PAR_STRATEGIE; i++) {
             sim.ajouterJoueur(new Joueur(joueurId++, stratPlusFreq));
         }
 
         // Groupe D : Les Moins Fréquents (StrategieMoinsFrequents)
-        System.out.printf("Création du groupe Numéros 'Froids' (%d joueurs)...%n", NB_JOUEURS_PAR_STRATEGIE);
+        logger.info("Création du groupe Numéros 'Froids' (%d joueurs)...%n", NB_JOUEURS_PAR_STRATEGIE);
         for (int i = 0; i < NB_JOUEURS_PAR_STRATEGIE; i++) {
             sim.ajouterJoueur(new Joueur(joueurId++, stratMoinsFreq));
         }
 
         // Groupe E : Les Fixes (Témoins)
-        System.out.println("Création du groupe Fixe (2 joueurs)...");
+        logger.info("Création du groupe Fixe (2 joueurs)...");
         sim.ajouterJoueur(new Joueur(joueurId++, new StrategieFixe(Arrays.asList(2, 4, 8, 9, 12, 26), 1)));
         sim.ajouterJoueur(new Joueur(joueurId++, new StrategieFixe(Arrays.asList(10, 15, 22, 33, 38, 40), 5)));
 
         // 5. Lancement
-        System.out.println("\n--- DÉMARRAGE DE LA SIMULATION ---");
-        System.out.println("Analyse de " + data.size() + " tirages en cours...");
+        logger.info("\n--- DÉMARRAGE DE LA SIMULATION ---");
+        logger.info("Analyse de " + data.size() + " tirages en cours...");
         sim.demarrer();
     }
 }

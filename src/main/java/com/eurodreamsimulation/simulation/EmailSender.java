@@ -6,20 +6,25 @@ import java.util.Properties;
 import javax.mail.*;
 import javax.mail.internet.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class EmailSender {
 
     private static final Properties CONFIG = new Properties();
+    
+    private static final Logger logger = LogManager.getLogger(NextDrawPredictor.class);
 
     // Bloc statique : Chargé une seule fois au démarrage de l'application
     static {
         try (InputStream input = EmailSender.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
-                System.err.println("❌ ERREUR CRITIQUE : Fichier 'config.properties' introuvable dans src/main/resources/");
+                logger.error("❌ ERREUR CRITIQUE : Fichier 'config.properties' introuvable dans src/main/resources/");
             } else {
                 CONFIG.load(input);
             }
         } catch (IOException ex) {
-            System.err.println("❌ Erreur lors du chargement de la configuration : " + ex.getMessage());
+            logger.error("❌ Erreur lors du chargement de la configuration : " + ex.getMessage());
             ex.printStackTrace();
         }
     }
@@ -32,7 +37,7 @@ public class EmailSender {
         String password = CONFIG.getProperty("mail.password");
 
         if (sender == null || password == null) {
-            System.err.println("❌ ERREUR : Identifiants email manquants dans config.properties");
+            logger.error("❌ ERREUR : Identifiants email manquants dans config.properties");
             return;
         }
 
@@ -62,10 +67,10 @@ public class EmailSender {
 
             // 4. Envoi
             Transport.send(message);
-            System.out.println("✅ Email envoyé avec succès à " + destinataire);
+            logger.info("✅ Email envoyé avec succès à " + destinataire);
 
         } catch (MessagingException e) {
-            System.err.println("❌ Erreur lors de l'envoi de l'email : " + e.getMessage());
+            logger.error("❌ Erreur lors de l'envoi de l'email : " + e.getMessage());
             e.printStackTrace();
         }
     }
